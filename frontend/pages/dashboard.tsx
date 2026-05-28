@@ -46,6 +46,9 @@ import JobAnalytics from "@/components/JobAnalytics";
 import BulkJobActionBar from "@/components/BulkJobActionBar";
 import ClientSpendingTab from "@/components/ClientSpendingTab";
 import { usePriceContext } from "@/contexts/PriceContext";
+import ProfileCompletenessWidget from "@/components/ProfileCompletenessWidget";
+import { useOnboarding } from "@/hooks/useOnboarding";
+import ReferralDashboard from "@/components/ReferralDashboard";
 
 const LOW_BALANCE_THRESHOLD_XLM = 5;
 const CATEGORY_ICONS: Record<string, string> = {
@@ -70,7 +73,8 @@ type Tab =
   | "edit_profile"
   | "templates"
   | "price_alerts"
-  | "withdrawals";
+  | "withdrawals"
+  | "referrals";
 const REPOST_JOB_PREFILL_STORAGE_KEY = "marketpay_repost_job_prefill";
 
 async function fetchBalances(
@@ -127,6 +131,7 @@ export default function Dashboard({ publicKey, onConnect }: DashboardProps) {
   const [spendingLoading, setSpendingLoading] = useState(false);
   const { success } = useToast();
   const { xlmPriceUsd } = usePriceContext();
+  const { progress, checklistItems } = useOnboarding(publicKey);
 
   // ── Bulk selection state ──────────────────────────────────────────────────
   const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set());
@@ -422,6 +427,17 @@ export default function Dashboard({ publicKey, onConnect }: DashboardProps) {
           </div>
         )}
 
+        {/* Profile completeness widget */}
+        {!progress.isComplete && (
+          <div className="mb-6">
+            <ProfileCompletenessWidget
+              completionPercentage={progress.completionPercentage}
+              isComplete={progress.isComplete}
+              checklistItems={checklistItems}
+            />
+          </div>
+        )}
+
         {/* Job alert matches banner */}
         {!alertMatchesDismissed && alertMatches.length > 0 && (
           <div className="mb-6 rounded-xl border border-market-500/30 bg-market-500/8 p-4">
@@ -498,6 +514,7 @@ export default function Dashboard({ publicKey, onConnect }: DashboardProps) {
               "templates",
               "price_alerts",
               "withdrawals",
+              "referrals",
             ] as Tab[]
           ).map((t) => (
             <button
@@ -526,7 +543,9 @@ export default function Dashboard({ publicKey, onConnect }: DashboardProps) {
                             ? "Price Alerts"
                             : t === "withdrawals"
                               ? `Withdrawals (${withdrawHistory.length})`
-                              : "Edit Profile"}
+                              : t === "referrals"
+                                ? "Referrals"
+                                : "Edit Profile"}
             </button>
           ))}
         </div>
@@ -552,26 +571,7 @@ export default function Dashboard({ publicKey, onConnect }: DashboardProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center justify-between mb-2 gap-2">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-market-500/40 bg-ink-900 accent-market-400 cursor-pointer"
-                    checked={
-                      myJobs.filter((j) => j.status === "open").length > 0 &&
-                      myJobs
-                        .filter((j) => j.status === "open")
-                        .every((j) => selectedJobIds.has(j.id))
-                    }
-                    onChange={toggleSelectAll}
-                    aria-label="Select all open jobs"
-                  />
-                  <span className="text-xs text-amber-700">
-                    {selectedJobIds.size > 0
-                      ? `${selectedJobIds.size} selected`
-                      : "Select all"}
-                  </span>
-                </label>
+              <div className="flex justify-end mb-2">
                 <button
                   onClick={() => exportJobsToCSV(myJobs)}
                   className="btn-secondary text-xs px-3 py-1.5"
@@ -582,21 +582,8 @@ export default function Dashboard({ publicKey, onConnect }: DashboardProps) {
               {myJobs.map((job) => (
                 <div
                   key={job.id}
-                  className={clsx(
-                    "card-hover flex items-center gap-3",
-                    selectedJobIds.has(job.id) &&
-                      "ring-1 ring-market-400/40 bg-market-500/5",
-                  )}
+                  className="card-hover flex items-center justify-between gap-4"
                 >
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 flex-shrink-0 rounded border-market-500/40 bg-ink-900 accent-market-400 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                    checked={selectedJobIds.has(job.id)}
-                    onChange={() => toggleJobSelection(job.id)}
-                    disabled={job.status !== "open"}
-                    aria-label={`Select ${job.title}`}
-                    onClick={(e) => e.stopPropagation()}
-                  />
                   <Link
                     href={`/jobs/${job.id}`}
                     className="flex-1 min-w-0 block"
@@ -857,6 +844,8 @@ export default function Dashboard({ publicKey, onConnect }: DashboardProps) {
               ))}
             </div>
           )
+        ) : tab === "referrals" ? (
+          <ReferralDashboard publicKey={publicKey} />
         ) : (
           <EditProfileForm publicKey={publicKey} />
         )}

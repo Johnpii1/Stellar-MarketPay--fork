@@ -184,18 +184,37 @@ export interface TokenBalance {
   symbol: string;
 }
 
-// ─── Bulk Job Actions ─────────────────────────────────────────────────────────
+// ─── Referrals ────────────────────────────────────────────────────────────────
 
-export interface BulkJobResult {
+export type ReferralStatus = "pending" | "paid" | "ineligible";
+
+export interface ReferralReferee {
   id: string;
-  success: boolean;
-  error?: string;
-  newExpiresAt?: string; // bulk-extend only
-  boostedUntil?: string; // bulk-boost only
+  refereeAddress: string;
+  refereeDisplayName: string | null;
+  status: ReferralStatus;
+  payoutAmount: string | null; // XLM string, e.g. "0.5000000"
+  paidAt: string | null;
+  jobTitle: string | null;
+  createdAt: string;
 }
 
-export interface BulkActionResponse {
-  results: BulkJobResult[];
-  succeeded: number;
-  failed: number;
+export interface ReferralPayout {
+  id: string;
+  refereeAddress: string;
+  jobId: string;
+  jobTitle: string;
+  amountXlm: string;
+  contractTxHash: string | null;
+  createdAt: string;
+}
+
+export interface ReferralStats {
+  totalReferrals: number;
+  paidReferrals: number;
+  pendingReferrals: number;
+  totalEarnedXlm: string;
+  bonusBps: number;
+  referees: ReferralReferee[];
+  payouts: ReferralPayout[];
 }
