@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import FreelancerTierBadge from "@/components/FreelancerTierBadge";
+import FreelancerProfileSkeleton from "@/components/FreelancerProfileSkeleton";
 import {
   fetchPublicProfile,
   verifyIdentity,
@@ -215,11 +216,7 @@ export default function PublicFreelancerProfilePage({
         </Link>
 
         {state.status === "loading" && (
-          <div className="card space-y-4 animate-pulse" aria-busy="true">
-            <div className="h-8 bg-market-500/10 rounded w-2/3" />
-            <div className="h-4 bg-market-500/8 rounded w-1/2" />
-            <div className="h-24 bg-market-500/8 rounded w-full" />
-          </div>
+          <FreelancerProfileSkeleton />
         )}
 
         {state.status === "invalid" && (
@@ -250,13 +247,12 @@ export default function PublicFreelancerProfilePage({
         )}
 
         {state.status === "error" && (
-          <div className="card border-red-500/20 text-center py-12 sm:py-16">
-            <p className="font-display text-xl text-amber-100 mb-2">
-              Something went wrong
-            </p>
-            <p className="text-red-400/90 text-sm max-w-md mx-auto">
-              {state.message}
-            </p>
+          <div className="space-y-4">
+            <FreelancerProfileSkeleton />
+            <div className="text-center">
+              <p className="text-red-400/90 text-sm max-w-md mx-auto mb-2">{state.message}</p>
+              <button onClick={() => router.replace(router.asPath)} className="btn-primary text-sm">Retry</button>
+            </div>
           </div>
         )}
 
