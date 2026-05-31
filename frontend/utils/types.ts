@@ -18,7 +18,7 @@ export type FreelancerTier =
   | "Expert"
   | "Top Talent";
 export type AvailabilityStatus = "available" | "busy" | "unavailable";
-export type PortfolioItemType = "link" | "image" | "pdf";
+export type PortfolioItemType = "link" | "image" | "pdf" | "file" | "github" | "live" | "stellar_tx";
 
 export interface PortfolioItem {
   title: string;
@@ -83,10 +83,11 @@ export interface Application {
   freelancerAddress: string;
   freelancerTier?: FreelancerTier;
   proposal: string;
-  bidAmount: string; // Amount as string
-  currency: Currency; // XLM or USDC
+  bidAmount: string;
+  currency: Currency;
   status: "pending" | "accepted" | "rejected";
-  screeningAnswers?: Record<string, string>; // Question -> Answer mapping
+  screeningAnswers?: Record<string, string>;
+  estimatedDuration?: string;
   createdAt: string;
 }
 
@@ -103,8 +104,9 @@ export interface UserProfile {
   totalEarnedXLM: string;
   rating?: number;
   tier?: FreelancerTier;
-  /** Number of ratings received (when returned by profile API). */
   ratingCount?: number;
+  referralCount?: number;
+  reputationPoints?: number;
   didHash?: string;
   isKycVerified?: boolean;
   createdAt: string;
@@ -275,5 +277,45 @@ export interface TimeInvoice {
   status: "pending" | "approved" | "rejected";
   totalMinutes: number;
   amountXlm: string;
+  hourlyRateXlm?: number;
+  totalAmountXlm?: string;
+  createdAt: string;
+}
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export interface JobAnalytics {
+  applicationsPerDay: { day: string; count: number }[];
+  skillDistribution: Record<string, number>;
+  averageBidAmount: { currency: string; avgBid: number; count: number }[];
+  daysToHire: number | null;
+  applicationStatusCounts: {
+    pending: number;
+    accepted: number;
+    rejected: number;
+    [key: string]: number;
+  };
+}
+
+// ─── Bulk Actions ────────────────────────────────────────────────────────────
+
+export interface BulkActionResponse {
+  succeeded: number;
+  failed: number;
+  results: { success: boolean; id: string; error?: string; boostedUntil?: string }[];
+}
+
+// ─── Job Invitations ─────────────────────────────────────────────────────────
+
+export interface JobInvitation {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  jobBudget: string;
+  jobCurrency: string;
+  clientAddress: string;
+  clientName?: string;
+  freelancerAddress: string;
+  status: "pending" | "accepted" | "declined";
   createdAt: string;
 }

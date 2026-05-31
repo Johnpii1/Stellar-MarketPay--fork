@@ -1,6 +1,7 @@
 import axios from "axios";
 import { optionalClientEnv } from "./env";
 import type {
+  ClientReputation,
   Availability,
   Job,
   Application,
@@ -14,7 +15,13 @@ import type {
   PortfolioFile,
   TokenInfo,
   TokenBalance,
-  ClientReputation,
+  ReferralStats,
+  TimeEntry,
+  TimeInvoice,
+  Message,
+  AssessmentQuestion,
+  SkillBadge,
+  BulkActionResponse,
 } from "@/utils/types";
 
 const api = axios.create({
@@ -364,6 +371,22 @@ export async function fetchProfile(publicKey: string) {
   return data.data;
 }
 
+export async function fetchProfileStats(publicKey: string) {
+  const { data } = await api.get<{
+    success: boolean;
+    data: { totalApplications: number; acceptedApplications: number; successRate: number };
+  }>(`/api/profiles/${encodeURIComponent(publicKey)}/stats`);
+  return data.data;
+}
+
+export async function fetchProfileResponseTime(publicKey: string) {
+  const { data } = await api.get<{
+    success: boolean;
+    data: { averageDays: number | null };
+  }>(`/api/profiles/${encodeURIComponent(publicKey)}/response-time`);
+  return data.data;
+}
+
 export async function fetchPublicProfile(
   publicKey: string,
 ): Promise<UserProfile | null> {
@@ -579,11 +602,14 @@ export async function raiseDispute(
  * Resolves a dispute for a job (Admin only).
  *
  * @param jobId Job identifier.
+ * @param note Resolution note.
+ * @param releaseTo Release funds to "client" or "freelancer".
  * @returns The updated job record.
  */
-export async function resolveDispute(jobId: string) {
+export async function resolveDispute(jobId: string, note?: string, releaseTo?: string) {
   const { data } = await api.post<{ success: boolean; data: Job }>(
     `/api/jobs/${jobId}/resolve`,
+    { note, releaseTo },
   );
   return data.data;
 }
@@ -704,6 +730,40 @@ export async function deleteDraft(draftId: string) {
   await api.delete(`/api/jobs/drafts/${draftId}`);
 }
 
+// ─── Skill Assessments ─────────────────────────────────────────────────────────
+
+export async function fetchAssessment(skill: string) {
+  const { data } = await api.get<{
+    success: boolean;
+    data: {
+      label: string;
+      skill: string;
+      questions: AssessmentQuestion[];
+      durationSeconds: number;
+      canRetake: boolean;
+      retakeAvailableAt?: string;
+      lastAttempt?: { score: number; passed: boolean };
+    };
+  }>(`/api/assessments/${skill}`);
+  return data.data;
+}
+
+export async function submitAssessment(
+  skill: string,
+  answers: Record<number, number>,
+) {
+  const { data } = await api.post<{
+    success: boolean;
+    data: {
+      score: number;
+      passed: boolean;
+      correct: number;
+      total: number;
+    };
+  }>("/api/assessments/submit", { skill, answers });
+  return data.data;
+}
+
 // ─── Admin 2FA ────────────────────────────────────────────────────────────────
 
 export async function fetchAdmin2FAStatus() {
@@ -729,16 +789,6 @@ export async function verifyAdmin2FA(token: string, setup = false) {
     data: { backupCodes?: string[]; message?: string };
   }>("/api/admin/2fa/verify", { token, setup });
   return { token: data.token, backupCodes: data.data?.backupCodes, message: data.data?.message };
-}
-
-// ─── Job Recommendations (Issue #221) ───────────────────────────────────
-
-export async function fetchRecommendedJobs(limit = 10) {
-  const { data } = await api.get<{ success: boolean; data: Job[] }>(
-    "/api/jobs/recommended",
-    { params: { limit } },
-  );
-  return data.data;
 }
 
 // ─── IPFS File Upload (Issue #202) ──────────────────────────────────────────
@@ -1275,13 +1325,6 @@ export async function endorseSkill(
   });
 }
 
-export interface SkillBadge {
-  skill: string;
-  score: number;
-  passed: boolean;
-  taken_at: string;
-}
-
 export async function fetchSkillBadges(
   publicKey: string,
 ): Promise<SkillBadge[]> {
@@ -1645,3 +1688,38 @@ export async function acceptInvitation(
   );
   return data.data;
 }
+
+// ─── Bulk Job Actions ─────────────────────────────────────────────────────────
+
+export async function bulkCancelJobs(
+  jobIds: string[]
+): Promise<BulkActionResponse> {
+  const { data } = await api.post<{ success: boolean; data: BulkActionResponse }>(
+    "/api/jobs/bulk/cancel",
+    { jobIds }
+  );
+  return data.data;
+}
+
+export async function bulkExtendJobs(
+  jobIds: string[],
+  days: number
+): Promise<BulkActionResponse> {
+  const { data } = await api.post<{ success: boolean; data: BulkActionResponse }>(
+    "/api/jobs/bulk/extend",
+    { jobIds, days }
+  );
+  return data.data;
+}
+
+export async function bulkBoostJobs(
+  jobIds: string[],
+  amountXlm: number | string
+): Promise<BulkActionResponse> {
+  const { data } = await api.post<{ success: boolean; data: BulkActionResponse }>(
+    "/api/jobs/bulk/boost",
+    { jobIds, amountXlm }
+  );
+  return data.data;
+}
+
