@@ -522,7 +522,7 @@ impl MarketPayContract {
     pub fn release_escrow(env: Env, job_id: String, client: Address) {
         client.require_auth();
 
-        let mut escrow: Escrow = env
+        let escrow: Escrow = env
             .storage()
             .instance()
             .get(&DataKey::Escrow(job_id.clone()))
